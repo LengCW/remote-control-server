@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>远程设备管理</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            line-height: 1.6;
+            padding: 30px;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 36px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .form-group > div {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        input, button {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:focus, button:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        button.danger {
+            background-color: #e74c3c;
+        }
+
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+
+        pre {
+            background-color: #f1f2f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            display: none;
+        }
+
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background-color: #fafafa;
+            border-radius: 12px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+            transition: background-color 0.3s;
+        }
+
+        .device-item.offline {
+            opacity: 0.7;
+            border-left-color: #e74c3c;
+        }
+
+        .device-info strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .online .status-dot { background-color: #2ecc71; }
+        .offline .status-dot { background-color: #95a5a6; }
+
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 30px 0;
+        }
+
+        .device-actions button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🖥️ 远程设备管理</h1>
+        <div class="subtitle">通过 http://yk.lengchangwei.xyz 控制你的设备</div>
+    </header>
+
+    <!-- 注册设备 -->
+    <div class="card">
+        <h3>➕ 添加新设备</h3>
+        <div class="form-group">
+            <div>
+                <input type="text" id="deviceId" placeholder="设备ID（唯一标识，如：HomePC）" autocomplete="off" />
+            </div>
+            <div>
+                <input type="text" id="deviceName" placeholder="设备名称（可选，如：书房电脑）" autocomplete="off" />
+            </div>
+            <div style="min-width: 120px;">
+                <button id="registerBtn">注册设备</button>
+            </div>
+        </div>
+        <pre id="tokenOutput"></pre>
+    </div>
+
+    <!-- 设备列表 -->
+    <div class="card">
+        <h3>📱 设备列表</h3>
+        <div id="deviceList">
+            <div class="empty">正在加载...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ====== 登录检查 ======
+    if (!localStorage.getItem('authToken')) {
+        window.location.href = '/login';
+    }
+
+    // ====== 封装带 token 的请求 ======
+    function authFetch(url, options = {}) {
+        const token = localStorage.getItem('authToken');
+        return fetch(url, {
+            ...options,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                ...(options.headers || {})
+            }
+        });
+    }
+
+    const tokenOutput = document.getElementById('tokenOutput');
+    const deviceListEl = document.getElementById('deviceList');
+
+    // 注册设备
+    document.getElementById('registerBtn').addEventListener('click', async () => {
+        const id = document.getElementById('deviceId').value.trim();
+        const name = document.getElementById('deviceName').value.trim();
+        if (!id) return alert('请输入设备ID');
+
+        try {
+            const res = await authFetch('/api/devices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                tokenOutput.style.display = 'block';
+                tokenOutput.textContent =
+                    `✅ 设备注册成功！\n\n请将以下信息配置到你的设备客户端中：\n\n设备ID: ${data.id}\n设备名称: ${data.name}\nToken: ${data.token}`;
+                document.getElementById('deviceId').value = '';
+                document.getElementById('deviceName').value = '';
+                loadDevices();
+            } else {
+                alert('❌ ' + (data.error || '注册失败'));
+            }
+        } catch (err) {
+            alert('网络错误: ' + err.message);
+        }
+    });
+
+    // 远程关机
+    window.shutdownDevice = async (id) => {
+        if (!confirm(`确定要远程关闭设备 "${id}" 吗？`)) return;
+        try {
+            const res = await authFetch(`/api/devices/${id}/shutdown`, { method: 'POST' });
+            if (res.ok) {
+                alert('✅ 关机指令已发送！');
+                loadDevices();
+            } else {
+                const data = await res.json();
+                alert('❌ ' + (data.error || '操作失败'));
+            }
+        } catch (err) {
+            alert('请求失败: ' + err.message);
+        }
+    };
+
+    // 设置定时关机
+    window.scheduleShutdown = async (id) => {
+        const delay = prompt('请输入延迟关机时间（秒）', '60'); // 默认 60 秒
+        if (!delay || isNaN(delay) || delay <= 0) {
+            alert('无效的时间输入');
+            return;
+        }
+
+        try {
+            const res = await authFetch(`/api/devices/${id}/schedule-shutdown`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delay: parseInt(delay) })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`✅ 设备将在 ${delay} 秒后关机`);
+            } else {
+                alert('❌ ' + (data.error || '设置失败'));
+            }
+        } catch (err) {
+            alert('请求失败: ' + err.message);
+        }
+    };
+
+    // 取消定时关机任务
+    window.cancelScheduleShutdown = async (id) => {
+        if (!confirm(`确定要取消设备 "${id}" 的定时关机任务吗？`)) return;
+        try {
+            const res = await authFetch(`/api/devices/${id}/cancel-schedule-shutdown`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`✅ 定时关机任务已取消`);
+            } else {
+                alert('❌ ' + (data.error || '取消失败'));
+            }
+        } catch (err) {
+            alert('请求失败: ' + err.message);
+        }
+    };
+
+    // 加载设备列表
+    async function loadDevices() {
+        try {
+            const res = await authFetch('/api/devices');
+            const devices = await res.json();
+
+            if (devices.length === 0) {
+                deviceListEl.innerHTML = '<div class="empty">暂无设备，请先添加</div>';
+                return;
+            }
+
+            let html = '';
+            devices.forEach(d => {
+                const isOnline = d.online;
+                const statusClass = isOnline ? 'online' : 'offline';
+                html += `
+                    <div class="device-item ${statusClass}">
+                        <div class="device-info">
+                            <strong>${d.name}</strong>
+                            <div>
+                                <span class="status-dot"></span>
+                                ID: ${d.id} · ${isOnline ? '在线' : '离线'} · 最后在线: ${d.lastSeen}
+                            </div>
+                        </div>
+                        <div class="device-actions">
+                            ${isOnline ?
+                    `<button class="danger" onclick="shutdownDevice('${d.id}')">🔴 远程关机</button>
+                                 <button onclick="scheduleShutdown('${d.id}')">⏲️ 设置定时关机</button>
+                                 <button onclick="cancelScheduleShutdown('${d.id}')">❌ 取消定时任务</button>` :
+                    `<button disabled>已离线</button>`
+                }
+                        </div>
+                    </div>
+                `;
+            });
+            deviceListEl.innerHTML = html;
+        } catch (err) {
+            deviceListEl.innerHTML = `<div class="empty">加载失败: ${err.message}</div>`;
+        }
+    }
+
+    setInterval(loadDevices, 5000);
+    loadDevices();
+</script>
+</body>
+</html>
