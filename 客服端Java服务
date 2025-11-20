@@ -1,0 +1,83 @@
+import java.io.*;
+import java.net.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class RemoteClient {
+    // ========== 🔑 请修改这三行！ ==========
+    private static final String DEVICE_ID = "xxx";//服务端填写的设备ID
+    private static final String TOKEN = "xxxxx"; //服务端添加设备获取token
+    private static final String SERVER_URL = "http://xxxx";//服务器地址
+    // ======================================
+
+    private static final int HEARTBEAT_INTERVAL = 30; // 秒
+    private static final String LOG_FILE = "remote_client.log";
+
+    public static void main(String[] args) {
+        log("✅ 远程关机客户端启动（使用 heartbeat 接口）");
+        log("🆔 设备ID: " + DEVICE_ID);
+
+        while (true) {
+            try {
+                URL url = new URL(SERVER_URL + "/api/devices/" + DEVICE_ID + "/heartbeat");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("X-Device-Token", TOKEN); // ⚠️ 注意 header 名
+                conn.setConnectTimeout(10_000);
+                conn.setReadTimeout(10_000);
+                conn.setDoOutput(true); // 必须设置，因为是 POST
+
+                // 发送空 body（服务端不要求 body）
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write("{}".getBytes("UTF-8")); // 或者留空也行，但有些服务器要求有 body
+                }
+
+                int responseCode = conn.getResponseCode();
+                String response = readResponse(conn);
+
+                if (responseCode == 200) {
+                    if (response.contains("\"shutdown\":true")) {
+                        log("🔴 收到远程关机指令！");
+                        Runtime.getRuntime().exec("shutdown /s /t 10 /c \"系统将在10秒后关闭（远程指令）\"");
+                        log("✅ 关机命令已执行，客户端退出。");
+                        break;
+                    } else {
+                        log("💓 心跳正常，无关机指令");
+                    }
+                } else {
+                    log("❌ API 错误 (" + responseCode + "): " + response);
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                log("⚠️ 异常: " + e.getMessage());
+            }
+
+            try {
+                Thread.sleep(HEARTBEAT_INTERVAL * 1000L);
+            } catch (InterruptedException e) {
+                log("👋 程序被中断");
+                break;
+            }
+        }
+    }
+
+    private static String readResponse(HttpURLConnection connection) throws IOException {
+        InputStream is = connection.getResponseCode() >= 400
+                ? connection.getErrorStream()
+                : connection.getInputStream();
+        if (is == null) return "";
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+            return reader.lines().reduce("", (a, b) -> a + b);
+        }
+    }
+
+    private static void log(String message) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String line = timestamp + " | " + message;
+        System.out.println(line);
+        try (FileWriter fw = new FileWriter(LOG_FILE, true)) {
+            fw.write(line + System.lineSeparator());
+        } catch (IOException ignored) {}
+    }
+}
