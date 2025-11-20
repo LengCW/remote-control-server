@@ -210,7 +210,7 @@
             // 根据响应状态处理登录结果
             if (res.ok) {
                 // 登录成功，保存认证令牌并跳转到主页
-                localStorage.setItem('authToken', data.token);
+                localStorage.setItem('adminToken', data.token);
                 window.location.href = '/'; // 登录成功跳转到主页
             } else {
                 // 登录失败，显示错误信息

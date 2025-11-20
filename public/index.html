@@ -1,335 +1,884 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>远程设备管理</title>
+    <title>🚀 远程设备管理 · Neon Control</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            line-height: 1.6;
-            padding: 30px;
+
+        :root {
+            --neon-purple: #8e2de2;
+            --neon-blue: #00dbde;
+            --online: #00ff9d;
+            --offline: #ff416c;
+            --warning: #ffd200;
+            --danger: #ff4b2b;
+            --bg-card: rgba(25, 25, 45, 0.85);
+            --bg-body: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --text-primary: #f0f0f0;
+            --text-secondary: #a0a0ff;
+            --text-muted: #8888cc;
+            --border-color: rgba(100, 100, 255, 0.2);
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --card-hover-glow: rgba(138, 43, 226, 0.3);
         }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
         .container {
-            max-width: 960px;
+            max-width: 1200px;
             margin: 0 auto;
         }
+
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
+            animation: fadeIn 1s ease-out;
+            position: relative;
         }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+        }
+
         h1 {
-            font-size: 36px;
-            color: #2c3e50;
-            font-weight: bold;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
         }
+
         .subtitle {
-            color: #7f8c8d;
-            font-size: 18px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
         }
 
         .card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            background: var(--bg-card);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
             padding: 30px;
             margin-bottom: 30px;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px var(--shadow-color), 0 0 20px var(--card-hover-glow);
+            border-color: rgba(138, 43, 226, 0.4);
         }
 
-        .form-group {
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-header {
             display: flex;
-            gap: 20px;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header i {
+            font-size: 1.4rem;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .card-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
             margin-bottom: 20px;
-            flex-wrap: wrap;
         }
 
-        .form-group > div {
-            flex: 1;
-            min-width: 250px;
-        }
-
-        input, button {
-            padding: 12px;
+        input, select, button {
+            padding: 16px;
             font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            border: none;
+            border-radius: 12px;
             width: 100%;
             outline: none;
-            transition: all 0.2s ease;
+            background: rgba(10, 10, 25, 0.8);
+            color: white;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
         }
 
-        input:focus, button:focus {
-            border-color: #3498db;
+        input:focus, select:focus {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 0 2px rgba(0, 219, 222, 0.3);
+            transform: translateY(-2px);
         }
 
         button {
-            background-color: #3498db;
+            background: linear-gradient(90deg, var(--neon-purple), #4a00e0);
             color: white;
             font-weight: bold;
-            border: none;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
         }
 
-        button:hover {
-            background-color: #2980b9;
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover:not(:disabled):not(.processing)::before {
+            left: 100%;
+        }
+
+        button:hover:not(:disabled):not(.processing) {
+            background: linear-gradient(90deg, #4a00e0, var(--neon-purple));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
         }
 
         button.danger {
-            background-color: #e74c3c;
+            background: linear-gradient(90deg, var(--danger), #ff416c);
         }
 
-        button.danger:hover {
-            background-color: #c0392b;
+        button.warning {
+            background: linear-gradient(90deg, #f7971e, var(--warning));
+            color: #000;
         }
 
-        pre {
-            background-color: #f1f2f6;
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-            font-family: Consolas, monospace;
+        button.secondary {
+            background: rgba(80, 80, 120, 0.5);
+        }
+
+        button.copy-token {
+            background: linear-gradient(90deg, #00c9ff, #92fe9d);
+            color: #000;
+            font-weight: bold;
+        }
+
+        button:disabled,
+        button.processing {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        pre.token-output {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-family: 'Fira Code', monospace;
             font-size: 14px;
             display: none;
+            white-space: pre-wrap;
+            border-left: 3px solid var(--neon-blue);
+            color: #00ffcc;
+            overflow-x: auto;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .copy-btn-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .device-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
 
         .device-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 14px;
-            background-color: #fafafa;
-            border-radius: 12px;
-            margin: 10px 0;
-            border-left: 4px solid #3498db;
-            transition: background-color 0.3s;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            padding: 28px;
+            background: rgba(20, 20, 40, 0.6);
+            border-radius: 18px;
+            border-left: 4px solid var(--neon-purple);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(142, 45, 226, 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .device-item:hover::before {
+            opacity: 1;
         }
 
         .device-item.offline {
-            opacity: 0.7;
-            border-left-color: #e74c3c;
+            opacity: 0.85;
+            border-left-color: var(--offline);
         }
 
-        .device-info strong {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 18px;
+        @media (max-width: 900px) {
+            .device-item {
+                grid-template-columns: 1fr;
+            }
         }
 
-        .status-dot {
+        .device-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .device-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .device-id-type {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .last-seen {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .schedule-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .schedule-header {
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .schedule-info {
+            padding: 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 90px;
+            justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .schedule-info:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .schedule-info.running {
+            border-left: 3px solid var(--online);
+        }
+
+        .schedule-info.paused {
+            border-left: 3px solid var(--warning);
+        }
+
+        .schedule-info.none {
+            border-left: 3px solid #666;
+            color: #aaa;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .task-time {
+            font-weight: bold;
+            color: #e0e0ff;
+            font-size: 1.1rem;
+        }
+
+        .device-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .device-actions button {
+            min-width: 110px;
+            flex: 1 1 auto;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+
+        .empty, .loading {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+
+        .loading::after {
+            content: "●";
+            animation: blink 1.4s infinite;
+            color: var(--neon-blue);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 219, 222, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 219, 222, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 219, 222, 0); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator {
             display: inline-block;
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 6px;
         }
 
-        .online .status-dot { background-color: #2ecc71; }
-        .offline .status-dot { background-color: #95a5a6; }
-
-        .empty {
-            text-align: center;
-            color: #999;
-            padding: 30px 0;
+        .status-online {
+            background-color: var(--online);
+            box-shadow: 0 0 8px var(--online);
         }
 
-        .device-actions button {
-            margin: 5px;
+        .status-offline {
+            background-color: var(--offline);
+            box-shadow: 0 0 8px var(--offline);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .device-actions {
+                justify-content: center;
+            }
+
+            .device-item {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <h1>🖥️ 远程设备管理</h1>
-        <div class="subtitle">通过 http://yk.lengchangwei.xyz 控制你的设备</div>
+        <h1><i class="fas fa-microchip"></i> 远程设备管理</h1>
+        <div class="subtitle">⚡ 实时控制 · 关机/开机定时 · 设备分类</div>
     </header>
 
-    <!-- 注册设备 -->
     <div class="card">
-        <h3>➕ 添加新设备</h3>
-        <div class="form-group">
-            <div>
-                <input type="text" id="deviceId" placeholder="设备ID（唯一标识，如：HomePC）" autocomplete="off" />
-            </div>
-            <div>
-                <input type="text" id="deviceName" placeholder="设备名称（可选，如：书房电脑）" autocomplete="off" />
-            </div>
-            <div style="min-width: 120px;">
-                <button id="registerBtn">注册设备</button>
-            </div>
+        <div class="card-header">
+            <i class="fas fa-plus-circle"></i>
+            <h3>添加新设备</h3>
         </div>
-        <pre id="tokenOutput"></pre>
+        <div class="form-grid">
+            <input type="text" id="deviceId" placeholder="设备ID（唯一，如：HomePC）" autocomplete="off"/>
+            <input type="text" id="deviceName" placeholder="设备名称（可选）" autocomplete="off"/>
+            <select id="deviceType">
+                <option value="desktop">🖥️ 台式机</option>
+                <option value="laptop">💻 笔记本电脑</option>
+            </select>
+            <button id="registerBtn"><i class="fas fa-paper-plane"></i> 注册设备</button>
+        </div>
+        <pre class="token-output" id="tokenOutput"></pre>
     </div>
 
-    <!-- 设备列表 -->
     <div class="card">
-        <h3>📱 设备列表</h3>
-        <div id="deviceList">
-            <div class="empty">正在加载...</div>
+        <div class="card-header">
+            <i class="fas fa-list"></i>
+            <h3>设备列表</h3>
+        </div>
+        <div id="deviceList" class="device-list">
+            <div class="loading">正在加载设备</div>
         </div>
     </div>
 </div>
 
 <script>
-    // ====== 登录检查 ======
-    if (!localStorage.getItem('authToken')) {
-        window.location.href = '/login';
+    function escapeHtml(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[&<>"']/g, tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[tag]);
     }
 
-    // ====== 封装带 token 的请求 ======
-    function authFetch(url, options = {}) {
-        const token = localStorage.getItem('authToken');
-        return fetch(url, {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+        alert('请先登录');
+        window.location.href = 'login.html';
+    }
+
+    async function authFetch(url, options = {}) {
+        const res = await fetch(url, {
             ...options,
             headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${adminToken}`,
+                'Content-Type': 'application/json',
                 ...(options.headers || {})
             }
         });
+
+        if (res.status === 401) {
+            localStorage.removeItem('adminToken');
+            alert('会话已过期，请重新登录');
+            window.location.href = 'login.html';
+        }
+
+        return res;
     }
 
     const tokenOutput = document.getElementById('tokenOutput');
     const deviceListEl = document.getElementById('deviceList');
+    const registerBtn = document.getElementById('registerBtn');
 
-    // 注册设备
-    document.getElementById('registerBtn').addEventListener('click', async () => {
+    // ========== 注册设备 ==========
+    registerBtn.addEventListener('click', async () => {
         const id = document.getElementById('deviceId').value.trim();
         const name = document.getElementById('deviceName').value.trim();
-        if (!id) return alert('请输入设备ID');
+        const type = document.getElementById('deviceType').value;
+
+        if (!id) {
+            alert('请输入设备ID（必须唯一）');
+            return;
+        }
+
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 注册中...';
 
         try {
             const res = await authFetch('/api/devices', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name })
+                body: JSON.stringify({id, name, type})
             });
             const data = await res.json();
 
             if (res.ok) {
+                const tokenText = `✅ 设备注册成功！\n\n请将以下信息配置到你的设备客户端中：\n\n设备ID: ${escapeHtml(data.id)}\n设备名称: ${escapeHtml(data.name)}\n类型: ${data.type === 'laptop' ? '笔记本电脑' : '台式机'}\nToken: ${escapeHtml(data.token)}`;
+                tokenOutput.textContent = tokenText;
                 tokenOutput.style.display = 'block';
-                tokenOutput.textContent =
-                    `✅ 设备注册成功！\n\n请将以下信息配置到你的设备客户端中：\n\n设备ID: ${data.id}\n设备名称: ${data.name}\nToken: ${data.token}`;
+
+                let copyBtn = tokenOutput.querySelector('.copy-btn');
+                if (!copyBtn) {
+                    copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-token copy-btn';
+                    copyBtn.innerText = '📋 复制 Token';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(data.token).then(() => {
+                            copyBtn.innerText = '✅ 已复制';
+                            setTimeout(() => copyBtn.innerText = '📋 复制 Token', 2000);
+                        }).catch(() => alert('复制失败'));
+                    };
+                    const container = document.createElement('div');
+                    container.className = 'copy-btn-container';
+                    container.appendChild(copyBtn);
+                    tokenOutput.appendChild(container);
+                }
+
+                setTimeout(() => tokenOutput.style.display = 'none', 8000);
+
                 document.getElementById('deviceId').value = '';
                 document.getElementById('deviceName').value = '';
                 loadDevices();
             } else {
-                alert('❌ ' + (data.error || '注册失败'));
+                const err = await res.json().catch(() => ({}));
+                alert('❌ ' + (err.error || '注册失败'));
             }
         } catch (err) {
             alert('网络错误: ' + err.message);
+        } finally {
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = '<i class="fas fa-paper-plane"></i> 注册设备';
         }
     });
 
-    // 远程关机
-    window.shutdownDevice = async (id) => {
-        if (!confirm(`确定要远程关闭设备 "${id}" 吗？`)) return;
-        try {
-            const res = await authFetch(`/api/devices/${id}/shutdown`, { method: 'POST' });
-            if (res.ok) {
-                alert('✅ 关机指令已发送！');
-                loadDevices();
-            } else {
-                const data = await res.json();
-                alert('❌ ' + (data.error || '操作失败'));
-            }
-        } catch (err) {
-            alert('请求失败: ' + err.message);
+    // ========== 执行操作 ==========
+    async function performAction(action, deviceId, taskId = null, payload = null, buttonElement = null) {
+        if (buttonElement) {
+            buttonElement.classList.add('processing');
+            buttonElement.disabled = true;
+            const originalHTML = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
         }
-    };
 
-    // 设置定时关机
-    window.scheduleShutdown = async (id) => {
-        const delay = prompt('请输入延迟关机时间（秒）', '60'); // 默认 60 秒
-        if (!delay || isNaN(delay) || delay <= 0) {
-            alert('无效的时间输入');
+        let url, method, body;
+
+        try {
+            if (action.startsWith('shutdown-')) {
+                const subAction = action.replace('shutdown-', '');
+                switch (subAction) {
+                    case 'add':
+                        url = `/api/devices/${deviceId}/shutdown-tasks`;
+                        method = 'POST';
+                        body = JSON.stringify(payload);
+                        break;
+                    case 'pause':
+                        url = `/api/devices/${deviceId}/shutdown-tasks/${taskId}/pause`;
+                        method = 'POST';
+                        break;
+                    case 'resume':
+                        url = `/api/devices/${deviceId}/shutdown-tasks/${taskId}/resume`;
+                        method = 'POST';
+                        break;
+                    case 'delete':
+                        url = `/api/devices/${deviceId}/shutdown-tasks/${taskId}`;
+                        method = 'DELETE';
+                        break;
+                    default:
+                        throw new Error('未知关机操作');
+                }
+            } else if (action.startsWith('wakeup-')) {
+                const subAction = action.replace('wakeup-', '');
+                switch (subAction) {
+                    case 'add':
+                        url = `/api/devices/${deviceId}/wakeup-tasks`;
+                        method = 'POST';
+                        body = JSON.stringify(payload);
+                        break;
+                    case 'pause':
+                        url = `/api/devices/${deviceId}/wakeup-tasks/${taskId}/pause`;
+                        method = 'POST';
+                        break;
+                    case 'resume':
+                        url = `/api/devices/${deviceId}/wakeup-tasks/${taskId}/resume`;
+                        method = 'POST';
+                        break;
+                    case 'delete':
+                        url = `/api/devices/${deviceId}/wakeup-tasks/${taskId}`;
+                        method = 'DELETE';
+                        break;
+                    default:
+                        throw new Error('未知开机操作');
+                }
+            } else if (action === 'shutdown') {
+                url = `/api/devices/${deviceId}/shutdown`;
+                method = 'POST';
+            } else if (action === 'wakeup') {
+                url = `/api/devices/${deviceId}/wakeup`;
+                method = 'POST';
+            } else {
+                throw new Error('未知操作: ' + action);
+            }
+
+            const res = await authFetch(url, {method, body});
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                if (err.pending) {
+                    alert('ℹ️ 指令已发送，设备将在下次心跳时执行');
+                } else {
+                    throw new Error(err.error || '操作失败');
+                }
+            }
+            loadDevices();
+            return true;
+        } catch (err) {
+            alert('❌ ' + err.message);
+            return false;
+        } finally {
+            if (buttonElement) {
+                setTimeout(() => {
+                    buttonElement.classList.remove('processing');
+                    buttonElement.disabled = false;
+                    // 不恢复 innerHTML，因为 loadDevices() 会刷新整个区域
+                }, 500);
+            }
+        }
+    }
+
+    // ========== 渲染任务列表 ==========
+    function renderTaskList(tasks, deviceId, taskType) {
+        if (!Array.isArray(tasks) || tasks.length === 0) {
+            return `<div class="schedule-info none"><i class="fas fa-ban"></i> 暂无${taskType === 'shutdown' ? '关机' : '开机'}任务</div>`;
+        }
+        return tasks.map(task => {
+            const isActive = task.active;
+            const isRunning = task.running;
+            const statusText = isActive ? (isRunning ? '运行中' : '启用但未调度') : '已暂停';
+            const statusClass = isActive && isRunning ? 'running' : (isActive ? '' : 'paused');
+            const timeStr = `${String(task.hour).padStart(2, '0')}:${String(task.minute).padStart(2, '0')}`;
+            const actionPrefix = taskType === 'shutdown' ? 'shutdown' : 'wakeup';
+
+            return `
+                <div class="schedule-info ${statusClass}">
+                    <div class="task-time">${timeStr}</div>
+                    <small>状态: ${statusText}</small>
+                    <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+                        ${isActive ?
+                `<button class="warning" data-action="${actionPrefix}-pause" data-device-id="${deviceId}" data-task-id="${task.id}">
+                    <i class="fas fa-pause"></i> 暂停
+                </button>` :
+                `<button class="secondary" data-action="${actionPrefix}-resume" data-device-id="${deviceId}" data-task-id="${task.id}">
+                    <i class="fas fa-play"></i> 恢复
+                </button>`
+            }
+                        <button data-action="${actionPrefix}-delete" data-device-id="${deviceId}" data-task-id="${task.id}">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ========== 事件委托 ==========
+    deviceListEl.addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn || btn.classList.contains('processing')) return;
+
+        const action = btn.dataset.action;
+        const deviceId = btn.dataset.deviceId;
+        const taskId = btn.dataset.taskId;
+
+        if (action === 'shutdown') {
+            if (!confirm(`确定要远程关闭设备 "${deviceId}" 吗？`)) return;
+            await performAction('shutdown', deviceId, null, null, btn);
+        } else if (action === 'wakeup') {
+            if (!confirm(`确定要远程唤醒设备 "${deviceId}" 吗？`)) return;
+            await performAction('wakeup', deviceId, null, null, btn);
+        } else if (action === 'add-shutdown-schedule') {
+            const hour = prompt('关机小时（0-23）', '22');
+            const minute = prompt('关机分钟（0-59）', '00');
+            if (hour === null || minute === null) return;
+            const h = parseInt(hour), m = parseInt(minute);
+            if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+                alert('请输入有效时间');
+                return;
+            }
+            await performAction('shutdown-add', deviceId, null, {hour: h, minute: m}, btn);
+        } else if (action === 'add-wakeup-schedule') {
+            const hour = prompt('开机小时（0-23）', '08');
+            const minute = prompt('开机分钟（0-59）', '00');
+            if (hour === null || minute === null) return;
+            const h = parseInt(hour), m = parseInt(minute);
+            if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+                alert('请输入有效时间');
+                return;
+            }
+            await performAction('wakeup-add', deviceId, null, {hour: h, minute: m}, btn);
+        } else if (action.endsWith('-pause') || action.endsWith('-resume') || action.endsWith('-delete')) {
+            const isDelete = action.includes('delete');
+            const msg = isDelete ? '确定删除此任务？此操作不可逆。' : '确定执行此操作？';
+            if (!confirm(msg)) return;
+            await performAction(action, deviceId, taskId, null, btn);
+        }
+    });
+
+    // ========== 渲染设备 ==========
+    function renderDevices(devices) {
+        if (devices.length === 0) {
+            deviceListEl.innerHTML = '<div class="empty">暂无设备，请先添加</div>';
             return;
         }
 
-        try {
-            const res = await authFetch(`/api/devices/${id}/schedule-shutdown`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ delay: parseInt(delay) })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(`✅ 设备将在 ${delay} 秒后关机`);
-            } else {
-                alert('❌ ' + (data.error || '设置失败'));
-            }
-        } catch (err) {
-            alert('请求失败: ' + err.message);
-        }
-    };
+        let html = '';
+        devices.forEach(d => {
+            const isOnline = d.online;
+            const statusClass = isOnline ? '' : 'offline';
+            const deviceIcon = d.type === 'laptop' ? 'fa-laptop' : 'fa-desktop';
 
-    // 取消定时关机任务
-    window.cancelScheduleShutdown = async (id) => {
-        if (!confirm(`确定要取消设备 "${id}" 的定时关机任务吗？`)) return;
-        try {
-            const res = await authFetch(`/api/devices/${id}/cancel-schedule-shutdown`, { method: 'POST' });
-            const data = await res.json();
-            if (res.ok) {
-                alert(`✅ 定时关机任务已取消`);
-            } else {
-                alert('❌ ' + (data.error || '取消失败'));
-            }
-        } catch (err) {
-            alert('请求失败: ' + err.message);
-        }
-    };
+            const displayName = escapeHtml(d.name || d.id);
+            const displayId = escapeHtml(d.id);
+            const deviceTypeText = d.type === 'laptop' ? '笔记本' : '台式机';
+            const lastSeen = escapeHtml(d.lastSeen || '从未');
 
-    // 加载设备列表
+            const shutdownTasksHtml = renderTaskList(d.shutdownTasks, d.id, 'shutdown');
+            const wakeupTasksHtml = d.type === 'desktop'
+                ? renderTaskList(d.wakeupTasks, d.id, 'wakeup')
+                : `<div class="schedule-info none"><i class="fas fa-laptop"></i> 笔记本不支持定时开机</div>`;
+
+            html += `
+                <div class="device-item ${statusClass}">
+                    <div class="device-meta">
+                        <div class="device-name">
+                            <i class="fas ${deviceIcon}"></i> ${displayName}
+                        </div>
+                        <div class="device-id-type">
+                            ID: ${displayId} · 类型: ${deviceTypeText}
+                        </div>
+                        <div class="last-seen">
+                            <span class="status-indicator ${isOnline ? 'status-online' : 'status-offline'}"></span>
+                            ${isOnline ? '在线' : '离线'} · 最后在线: ${lastSeen}
+                        </div>
+                        <div class="device-actions">
+                            ${isOnline ?
+                `<button class="danger" data-action="shutdown" data-device-id="${d.id}">
+                    <i class="fas fa-power-off"></i> 立即关机
+                </button>` :
+                (d.type === 'desktop' ?
+                        `<button class="warning" data-action="wakeup" data-device-id="${d.id}">
+                        <i class="fas fa-plug"></i> 远程开机
+                    </button>` :
+                        `<button disabled><i class="fas fa-ban"></i> 已离线</button>`
+                )
+            }
+                            <button data-action="add-shutdown-schedule" data-device-id="${d.id}">
+                                <i class="fas fa-plus"></i> 新建关机任务
+                            </button>
+                            ${d.type === 'desktop' ? `
+                            <button data-action="add-wakeup-schedule" data-device-id="${d.id}">
+                                <i class="fas fa-clock"></i> 定时开机任务
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:24px;">
+                        <div class="schedule-section">
+                            <div class="schedule-header"><i class="fas fa-clock"></i> 定时关机 (${d.shutdownTasks?.length || 0})</div>
+                            ${shutdownTasksHtml}
+                        </div>
+                        ${d.type === 'desktop' ? `
+                        <div class="schedule-section">
+                            <div class="schedule-header"><i class="fas fa-sun"></i> 定时开机 (${d.wakeupTasks?.length || 0})</div>
+                            ${wakeupTasksHtml}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+
+        deviceListEl.innerHTML = html;
+    }
+
+    // ========== 加载设备 ==========
+    let loading = false;
+    let cachedDevices = null;
+    let isFirstLoad = true;
+
     async function loadDevices() {
+        if (loading) return;
+        loading = true;
+
+        if (isFirstLoad) {
+            deviceListEl.innerHTML = '<div class="loading">正在加载设备</div>';
+        }
+
         try {
             const res = await authFetch('/api/devices');
             const devices = await res.json();
 
-            if (devices.length === 0) {
-                deviceListEl.innerHTML = '<div class="empty">暂无设备，请先添加</div>';
-                return;
+            const devicesStr = JSON.stringify(devices);
+            const cachedStr = JSON.stringify(cachedDevices);
+
+            if (devicesStr !== cachedStr) {
+                cachedDevices = devices;
+                renderDevices(devices);
             }
 
-            let html = '';
-            devices.forEach(d => {
-                const isOnline = d.online;
-                const statusClass = isOnline ? 'online' : 'offline';
-                html += `
-                    <div class="device-item ${statusClass}">
-                        <div class="device-info">
-                            <strong>${d.name}</strong>
-                            <div>
-                                <span class="status-dot"></span>
-                                ID: ${d.id} · ${isOnline ? '在线' : '离线'} · 最后在线: ${d.lastSeen}
-                            </div>
-                        </div>
-                        <div class="device-actions">
-                            ${isOnline ?
-                    `<button class="danger" onclick="shutdownDevice('${d.id}')">🔴 远程关机</button>
-                                 <button onclick="scheduleShutdown('${d.id}')">⏲️ 设置定时关机</button>
-                                 <button onclick="cancelScheduleShutdown('${d.id}')">❌ 取消定时任务</button>` :
-                    `<button disabled>已离线</button>`
-                }
-                        </div>
-                    </div>
-                `;
-            });
-            deviceListEl.innerHTML = html;
+            isFirstLoad = false;
         } catch (err) {
-            deviceListEl.innerHTML = `<div class="empty">加载失败: ${err.message}</div>`;
+            cachedDevices = null;
+            deviceListEl.innerHTML = `<div class="empty">加载失败: ${escapeHtml(err.message)}</div>`;
+            isFirstLoad = false;
+        } finally {
+            loading = false;
         }
     }
 
